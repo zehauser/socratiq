@@ -1,0 +1,23 @@
+runtime: python27
+api_version: 1
+threadsafe: true
+
+handlers:
+- url: /api/.*
+  script: api.app  
+
+- url: /.*
+  script: test.app
+
+env_variables:
+  CLOUDSQL_CONNECTION_NAME: socratiq-app:us-central1:socratiq
+  CLOUDSQL_USER: root
+
+skip_files:
+- ^(.*/)?#.*#$
+- ^(.*/)?.*~$
+- ^(.*/)?.*\.py[co]$
+- ^(.*/)?.*/RCS/.*$
+- ^(.*/)?\..*$
+- ^venv$
+- ^gae-lib/setuptools$
