@@ -9,6 +9,10 @@ handlers:
 - url: /.*
   script: test.app
 
+libraries:
+- name: MySQLdb
+  version: "latest"
+
 env_variables:
   CLOUDSQL_CONNECTION_NAME: socratiq-app:us-central1:socratiq
   CLOUDSQL_USER: root
