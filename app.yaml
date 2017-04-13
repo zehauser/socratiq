@@ -5,6 +5,7 @@ threadsafe: true
 handlers:
 - url: /api/.*
   script: api.app  
+  secure: always
 
 - url: /.*
   script: test.app
@@ -12,10 +13,13 @@ handlers:
 libraries:
 - name: MySQLdb
   version: "latest"
+- name: pycrypto
+  version: "latest"
 
 env_variables:
   CLOUDSQL_CONNECTION_NAME: socratiq-app:us-central1:socratiq
   CLOUDSQL_USER: root
+  CLOUDSQL_INSTANCE: socratiq
 
 skip_files:
 - ^(.*/)?#.*#$
