@@ -1,0 +1,55 @@
+== Sign Up == 
+
+=== Request === 
+PUT https://socratiq-app.appspot.com/api/users/zehauser
+  { 
+    "name": "Zach Hauser",
+    "email": "zehauser@gmail.com",
+    "password": "hunter2"
+  }
+
+=== Normal Response ===
+201 Created
+
+=== Error Responses === 
+400 Bad Request
+409 Conflict 
+
+
+
+
+== Sign In == 
+
+=== Request === 
+POST https://socratiq-app.appspot.com/api/login
+  {
+    "username": zehauser,
+    "password": hunter2
+  }
+
+=== Normal Response ===
+204 No Content
+Authorization: <token>
+
+=== Error Responses ===
+400 Bad Request
+403 Forbidden
+
+
+
+== (testing authorized endpoint)
+
+=== Request === 
+GET https://socratiq-app.appspot.com/api/users/zehauser/email
+Authorization: <token>
+
+=== Normal Response ===
+200 OK 
+  {
+    "email": "zehauser@gmail.com"
+  }
+
+=== Error Responses ===
+400 Bad Request
+403 Forbidden
+404 Not Found

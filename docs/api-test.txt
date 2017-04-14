@@ -1,0 +1,59 @@
+/users/###
+
+  POST /users/zehauser
+    {
+      "name": "Zach Hauser",
+      "email": "zehauser@gmail.com",
+      "password": "hunter2"
+    }
+
+  Responses:
+    201 Created
+    409 Conflict
+
+  ==========================================
+
+  GET /users/zehauser
+
+  Responses:
+    200 OK
+      { 
+        "name": "Zach Hauser"
+      }
+
+    404 Not Found
+
+============================================
+
+/login
+  
+  POST /login
+    { 
+      "username": "zehauser",
+      "password": "hunter2"
+    }
+
+  Responses:
+    200 OK
+      {
+        "token": "eyJhbGcXVCJ9"
+      }
+
+    403 Forbidden
+
+============================================
+
+/users/###/email
+
+  GET /users/zehauser/email 
+  Authorization: Bearer eyJhbGcXVCJ9
+
+  Responses:
+    200 OK 
+      {
+        "email": "zehauser@gmail.com"
+      }
+
+    401 Unauthorized
+    403 Forbidden
+    404 Not Found

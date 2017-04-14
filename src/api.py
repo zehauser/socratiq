@@ -41,7 +41,7 @@ class LoginServer(Endpoint):
             self.response.set_status(204)
             self.response.headers['Authorization'] = "Bearer {}".format(token)
         else:
-            self.error(403, "Username/password combination is invalid.\r\n")
+            self.error(403, "403 Forbidden! Username/password combination is invalid.\r\n")
 
 class UserInstanceEmail(Endpoint):
 
@@ -63,7 +63,7 @@ class UserInstanceFollowers(Endpoint):
         follower = self.db_session.query(User).get(follower_id)
         if not (follower and followee):
             self.error(404)
-        elif follower.users_followed.filter(id == followee_id).count() > 0:
+        elif follower.users_followed.filter(User.id == followee_id).count() > 0:
             self.error(409)
         else:
             follower.users_followed.append(followee)
