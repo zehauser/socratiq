@@ -3,12 +3,9 @@ api_version: 1
 threadsafe: true
 
 handlers:
-- url: /api/.*
-  script: api.app  
-  secure: always
-
 - url: /.*
-  script: test.app
+  script: common.routes.app
+  secure: always
 
 libraries:
 - name: MySQLdb
@@ -19,7 +16,7 @@ libraries:
 env_variables:
   CLOUDSQL_CONNECTION_NAME: socratiq-app:us-central1:socratiq
   CLOUDSQL_USER: root
-  CLOUDSQL_INSTANCE: socratiq
+  CLOUDSQL_DB: v3
 
 skip_files:
 - ^(.*/)?#.*#$
@@ -28,4 +25,14 @@ skip_files:
 - ^(.*/)?.*/RCS/.*$
 - ^(.*/)?\..*$
 - ^venv$
-- ^gae-lib/setuptools$
+- ^gae-lib/appdirs.*
+- ^gae-lib/easy_install.*
+- ^gae-lib/packaging.*
+- ^gae-lib/pip.*
+- ^gae-lib/pkg_resources.*
+- ^gae-lib/pyparsing.*
+- ^gae-lib/setuptools.*
+- ^gae-lib/six.*
+- ^gae-lib/venv.*
+- ^gae-lib/webapp.*
+- ^gae-lib/wheel.*
