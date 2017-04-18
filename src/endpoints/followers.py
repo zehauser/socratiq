@@ -27,16 +27,30 @@ class UserFollowerInstance(Endpoint):
     
     Represents a user-to-user follower relationship. 
         
-    - PUT adds a follower (requires authentication as follower).
-    - DELETE removes a follower (requires authentication as follower).
+    - GET checks to see if the relationship exists (requires authentication as 
+      follower)
+    - PUT adds a follower (requires authentication as follower)
+    - DELETE removes a follower (requires authentication as follower)
     """
+
+    @request_schema(None)
+    @requires_authentication(as_param='follower_id')
+    def get(self, followee_id, follower_id):
+        followee = self.db_session.query(User).get(followee_id)
+        follower = self.db_session.query(User).get(follower_id)
+        if not (followee and follower):
+            self.error(404)
+        elif follower.users_followed.filter(User.id == followee.id).count() != 1:
+            self.error(404)
+        else:
+            self.response.set_status(204)
 
     @request_schema(None)
     @requires_authentication(as_param='follower_id')
     def put(self, followee_id, follower_id):
         followee = self.db_session.query(User).get(followee_id)
         follower = self.db_session.query(User).get(follower_id)
-        if not (follower and followee):
+        if not follower or not followee:
             self.error(404)
         elif follower.users_followed.filter(User.id == followee_id).count() > 0:
             self.error(409)
@@ -50,9 +64,9 @@ class UserFollowerInstance(Endpoint):
     def delete(self, followee_id, follower_id):
         followee = self.db_session.query(User).get(followee_id)
         follower = self.db_session.query(User).get(follower_id)
-        if not (followee and follower):
+        if not followee or not follower:
             self.error(404)
-        if not follower.users_followed.filter(id == followee.id).count() > 0:
+        elif follower.users_followed.filter(User.id == followee.id).count() != 1:
             self.error(404)
         else:
             follower.users_followed.remove(followee)

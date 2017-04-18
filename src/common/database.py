@@ -11,10 +11,12 @@ _CONNECTION_STR = 'mysql+mysqldb://{}@/{}?unix_socket=/cloudsql/{}'.format(
     os.environ.get('CLOUDSQL_CONNECTION_NAME')
 )
 
+_ECHO = False
 if not os.getenv('SERVER_SOFTWARE', '').startswith('Google App Engine/'):
-    _CONNECTION_STR = "mysql+mysqldb://root@127.0.0.1:9501/v2"
+    _ECHO = True
+    _CONNECTION_STR = "mysql+mysqldb://root@127.0.0.1:9501/v3"
 
-_engine = create_engine(_CONNECTION_STR)
+_engine = create_engine(_CONNECTION_STR, echo=_ECHO)
 Session = sessionmaker(bind=_engine)
 _Base = declarative_base()
 _Base.metadata.bind = _engine
@@ -47,6 +49,10 @@ class User(_Base):
     time_created = Column(DateTime, nullable=False)
 
     password_data = relationship('PasswordData')
+    followers = relationship('User', lazy='dynamic',
+                             secondary=user_follows,
+                             primaryjoin=user_follows.c.followee == id,
+                             secondaryjoin=user_follows.c.follower == id)
     users_followed = relationship('User', lazy='dynamic',
                                   secondary=user_follows,
                                   primaryjoin=user_follows.c.follower == id,
@@ -74,9 +80,6 @@ class Tag(_Base):
     __tablename__ = 'Tags'
     name = Column(String(25), primary_key=True)
 
-    articles = relationship('Article', secondary=_article_tags,
-                            primaryjoin=_article_tags.c.tag == name)
-
 
 class Article(_Base):
     __tablename__ = 'Articles'
@@ -89,6 +92,12 @@ class Article(_Base):
     author = relationship('User', back_populates='articles_authored')
     tags = relationship('Tag', secondary=_article_tags,
                         primaryjoin=_article_tags.c.article == uuid)
+
+# Not sure why this can't go in the initial Tag class definition, but
+# SQLAlchemy throws a fit (but only when running on actual GAE, not when
+# using the local dev server).
+Tag.articles = relationship('Article', secondary=_article_tags,
+                            primaryjoin=_article_tags.c.tag == Tag.name)
 
 
 class Comment(_Base):

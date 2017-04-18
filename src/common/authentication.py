@@ -1,6 +1,6 @@
 import os
 import jwt
-import Crypto.Protocol
+from Crypto.Protocol import KDF
 from datetime import datetime, timedelta
 
 from common.database import PasswordData, Secret, Session
@@ -16,13 +16,13 @@ else:
 
 
 def _password_hash(password, salt):
-    return Crypto.Protocol.KDF.PBKDF2(password, salt, dkLen=32, count=10000)
+    return KDF.PBKDF2(password, salt, dkLen=32, count=10000)
 
 
 def issue_token(userid, password_data, password):
     if password_data:
         if password_data.hash == _password_hash(password, password_data.salt):
-            token_expiry = datetime.utcnow() + timedelta(hours=1)
+            token_expiry = datetime.utcnow() + timedelta(hours=12)
             token_payload = {'userid': userid, 'exp': token_expiry}
             return jwt.encode(token_payload, _JWT_SECRET, algorithm='HS256')
     return None

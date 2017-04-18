@@ -13,6 +13,7 @@ class UserCollection(Endpoint):
       - GET returns the list and count of users
       """
 
+    @request_schema(None)
     def get(self):
         users = [user.id for user in self.db_session.query(User).all()]
         self.json_response({ 'user_count': len(users), 'users': users })
