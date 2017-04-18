@@ -93,6 +93,7 @@ class Article(_Base):
     tags = relationship('Tag', secondary=_article_tags,
                         primaryjoin=_article_tags.c.article == uuid)
 
+
 # Not sure why this can't go in the initial Tag class definition, but
 # SQLAlchemy throws a fit (but only when running on actual GAE, not when
 # using the local dev server).
