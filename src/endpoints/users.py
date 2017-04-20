@@ -32,7 +32,18 @@ class UserInstance(Endpoint):
     def get(self, userid):
         user = self.get_user(userid)
         if user:
-            self.json_response({'userid': userid, 'name': user.name})
+            response = {
+                'userid': userid,
+                'name': user.name,
+            }
+            if self.authenticated_user and self.authenticated_user != userid:
+                if (user.followers
+                       .filter(User.id == self.authenticated_user)
+                       .count() == 1):
+                    response['followed'] = True
+                else:
+                    response['followed'] = False
+            self.json_response(response)
         else:
             self.error(404)
 

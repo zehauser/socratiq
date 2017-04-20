@@ -43,7 +43,7 @@ Response:
 
 ### GET /users/\<userid\>
 
-Returns basic public information about a user, if the user exists.
+Returns basic information about a user, if the user exists.
 
 Request:
 ```
@@ -56,9 +56,14 @@ Successful response:
 
 {
   "userid": "zehauser",
-  "name": "Zach Hauser"
+  "name": "Zach Hauser",
+  "followed": false
 }
 ```
+
+Note that the `"followed"` flag (indicating whether the authenticated user 
+follows `userid`) will not appear if the request is unauthenticated, or if 
+the authenticated user is `userid`.
 
 Error response (no such user): `404 Not Found`
 

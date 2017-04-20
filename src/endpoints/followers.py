@@ -1,7 +1,6 @@
 from common.database import User
 from endpoint import Endpoint, requires_authentication, request_schema
 
-
 class UserFollowerCollection(Endpoint):
     """ /users/<followee>/followers
 
