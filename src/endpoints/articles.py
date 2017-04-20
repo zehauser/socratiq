@@ -22,11 +22,14 @@ class ArticleCollection(Endpoint):
                       'content': str, 'tags': [str] })
     @requires_authentication(as_key='author')
     def post(self):
+        # TODO don't just create them, and have a max # of tags, and check for uniqueness
         for tag in self.json_request['tags']:
             if not self.db_session.query(Tag).get(tag):
-                self.db_session.add(Tag(name=tag)) # TODO don't just create them, and have a max # of tags, and check for uniqueness
+                self.db_session.add(Tag(name=tag))
         tags = [self.db_session.query(Tag).get(tag) for tag in self.json_request['tags']]
+
         author = self.db_session.query(User).get(self.json_request['author'])
+
         self.db_session.add(Article(uuid=uuid.uuid4().hex,
                                     title=self.json_request['title'],
                                     time_published=datetime.utcnow(),

@@ -64,7 +64,7 @@ Error response (no such user): `404 Not Found`
 
 ### PUT /users/\<userid\>
 
-Creates a user account.
+Creates a user account (and issues an authorization token, like `/login`).
 
 Request:
 ```
@@ -77,7 +77,12 @@ PUT /users/zehauser
 }
 ```
 
-Successful response: `201 Created`
+Successful response: 
+```
+201 Created
+Authorization: Bearer eyJ0eXAiOiJKV1Q.eyJleGFtcGQ5M.PRyeTAp
+```
+
 
 Error response (userid already exists): `409 Conflict`
 
