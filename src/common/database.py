@@ -13,7 +13,7 @@ _CONNECTION_STR = 'mysql+mysqldb://{}@/{}?unix_socket=/cloudsql/{}'.format(
 
 _ECHO = False
 if not os.getenv('SERVER_SOFTWARE', '').startswith('Google App Engine/'):
-    _ECHO = True
+    # _ECHO = True
     _CONNECTION_STR = "mysql+mysqldb://root@127.0.0.1:9501/v3"
 
 _engine = create_engine(_CONNECTION_STR, echo=_ECHO)
@@ -30,20 +30,20 @@ class Secret(_Base):
 
 user_follows = Table(
     'UserFollows', _Base.metadata,
-    Column('follower', String(25), ForeignKey('Users.id'), primary_key=True),
-    Column('followee', String(25), ForeignKey('Users.id'), primary_key=True)
+    Column('follower', String(50), ForeignKey('Users.id'), primary_key=True),
+    Column('followee', String(50), ForeignKey('Users.id'), primary_key=True)
 )
 
 tag_follows = Table(
     'TagFollows', _Base.metadata,
-    Column('follower', String(25), ForeignKey('Users.id'), primary_key=True),
-    Column('tag', String(25), ForeignKey('Tags.name'), primary_key=True)
+    Column('follower', String(50), ForeignKey('Users.id'), primary_key=True),
+    Column('tag', String(100), ForeignKey('Tags.name'), primary_key=True)
 )
 
 
 class User(_Base):
     __tablename__ = 'Users'
-    id = Column(String(25), primary_key=True)
+    id = Column(String(50), primary_key=True)
     name = Column(String(50), nullable=False)
     email = Column(String(50), nullable=False)
     time_created = Column(DateTime, nullable=False)
@@ -63,7 +63,7 @@ class User(_Base):
 
 class PasswordData(_Base):
     __tablename__ = 'PasswordData'
-    userid = Column(String(25), ForeignKey('Users.id'), primary_key=True)
+    userid = Column(String(50), ForeignKey('Users.id'), primary_key=True)
     salt = Column(LargeBinary(32), nullable=False)
     hash = Column(LargeBinary(32), nullable=False)
 
@@ -72,20 +72,20 @@ _article_tags = Table(
     'ArticleTags', _Base.metadata,
     Column('article', String(32), ForeignKey('Articles.uuid'),
            primary_key=True),
-    Column('tag', String(25), ForeignKey('Tags.name'), primary_key=True)
+    Column('tag', String(100), ForeignKey('Tags.name'), primary_key=True)
 )
 
 
 class Tag(_Base):
     __tablename__ = 'Tags'
-    name = Column(String(25), primary_key=True)
+    name = Column(String(100), primary_key=True)
 
 
 class Article(_Base):
     __tablename__ = 'Articles'
     uuid = Column(String(32), primary_key=True)
-    author_id = Column(String(25), ForeignKey('Users.id'), nullable=False)
-    title = Column(String(50), nullable=False)
+    author_id = Column(String(50), ForeignKey('Users.id'), nullable=False)
+    title = Column(String(200), nullable=False)
     time_published = Column(DateTime, nullable=False)
     content = Column(Text, nullable=False)
 
@@ -104,7 +104,7 @@ Tag.articles = relationship('Article', secondary=_article_tags,
 class Comment(_Base):
     __tablename__ = 'Comments'
     uuid = Column(String(32), primary_key=True)
-    author_id = Column(String(25), ForeignKey('Users.id'), nullable=False)
+    author_id = Column(String(50), ForeignKey('Users.id'), nullable=False)
     article_id = Column(String(32), ForeignKey('Articles.uuid'), nullable=False)
     time_published = Column(DateTime, nullable=False)
     content = Column(Text, nullable=False)
