@@ -3,8 +3,6 @@ import webapp2
 from endpoints import *
 
 app = webapp2.WSGIApplication([
-    webapp2.Route('/api/users/<userid>', UserInstance),
-
     webapp2.Route('/articles', ArticleCollection),
     webapp2.Route('/articles/<article_id>', ArticleInstance),
     webapp2.Route('/articles/<article_id>/likes', ArticleLikeCollection),
