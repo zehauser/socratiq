@@ -113,6 +113,36 @@ Authorization: Bearer eyJ0eXAiOiJKV1Q.eyJleGFtcGQ5M.PRyeTAp
  
 Error response (userid/password don't match): `403 Forbidden`
 
+### GET /articles
+
+Get a feed of 10 random articles (with metadata, but only partial body content).
+
+Request:
+```
+GET /articles
+```
+
+Response:
+```
+200 OK
+
+[
+    {
+        "article_id": "bdc4d94969c945bf9a394667a1543344",
+        "author_id": "zehauser",
+        "title": "The Art of Foo: Baz Bar"
+        "name": "Zach Hauser",
+        "date": "January 1, 1970",
+        "snippet": "It was a dark and stormy night, and..."
+        "followed": true,
+    }
+]
+```
+
+Note that the `"followed"` flag (indicating whether the authenticated user 
+follows `userid`) will not appear if the request is unauthenticated, or if 
+the authenticated user is `userid`.
+
 ### GET /users/<userid_1>/followers/<userid_2>
 
 Indicates whether or not `userid_2` follows `userid_1`. 

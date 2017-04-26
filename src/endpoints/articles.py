@@ -5,28 +5,48 @@ from common.database import Article, User, Tag
 from endpoint import Endpoint, request_schema, requires_authentication
 
 
+def article_to_json(article, follower=None):
+    json = {
+        'article_id': article.uuid,
+        'author_id': article.author.id,
+        'title': article.title,
+        'author': article.author.name,
+        'date': article.time_published.strftime('%B %d, %Y'),
+        'snippet': article.content[:247] + '...'
+    }
+    if follower and follower != article.author.id:
+        if article.author.followers.filter(User.id == follower).count() == 1:
+            json['followed'] = True
+        else:
+            json['followed'] = False
+    return json
+
+
 class ArticleCollection(Endpoint):
     """ /articles
 
     Represents the collection of all published articles.
 
-    - GET is the article feed, and is unimplemented 
+    - GET is the article feed 
     - POST publishes an article (requires authentication as author)
     """
 
-    # TODO
     def get(self):
-        self.error(501)
+        articles = self.db_session.query(Article).limit(10).all()
+        articles = [article_to_json(a, self.authenticated_user)
+                    for a in articles]
+        self.json_response(articles)
 
-    @request_schema({ 'author': str, 'title': str,
-                      'content': str, 'tags': [str] })
+    @request_schema({'author': str, 'title': str,
+                     'content': str, 'tags': [str]})
     @requires_authentication(as_key='author')
     def post(self):
         # TODO don't just create them, and have a max # of tags, and check for uniqueness
         for tag in self.json_request['tags']:
             if not self.db_session.query(Tag).get(tag):
                 self.db_session.add(Tag(name=tag))
-        tags = [self.db_session.query(Tag).get(tag) for tag in self.json_request['tags']]
+        tags = [self.db_session.query(Tag).get(tag) for tag in
+                self.json_request['tags']]
 
         author = self.db_session.query(User).get(self.json_request['author'])
 
