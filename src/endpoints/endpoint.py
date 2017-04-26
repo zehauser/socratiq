@@ -50,6 +50,8 @@ class Endpoint(webapp2.RequestHandler):
             'GET, POST, PUT, DELETE, OPTIONS, PATCH')
         self.response.headers['Access-Control-Allow-Headers'] = (
             'Authorization, Content-Length, Content-Type')
+        self.response.headers['Access-Control-Expose-Headers'] = (
+            self.response.headers['Access-Control-Allow-Headers'])
         super(Endpoint, self).dispatch()
 
     def json_response(self, obj):
