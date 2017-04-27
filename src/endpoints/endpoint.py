@@ -115,7 +115,6 @@ class NotFoundHandler(Endpoint):
 def requires_authentication(as_param=None, as_key=None):
     def requires_authentication_decorator_creator(handler_func):
         def requires_authentication_decorator(self, *args, **kwargs):
-            assert as_param or as_key
             if not self.authenticated_user:
                 self.error(401)
             elif as_param and kwargs[as_param] != self.authenticated_user:

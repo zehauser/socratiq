@@ -46,27 +46,33 @@ class ArticleCollection(Endpoint):
         ]
         self.json_response(articles)
 
-    @request_schema({'author': str, 'title': str,
-                     'content': str, 'tags': [str]})
-    @requires_authentication(as_key='author')
+    @request_schema({'title': str, 'content': str, 'tags': [str]})
+    @requires_authentication()
     def post(self):
-        # TODO don't just create them, and have a max # of tags, and check for uniqueness
-        for tag in self.json_request['tags']:
+
+        tag_names = self.json_request['tags']
+        for tag in tag_names:
             if not self.db_session.query(Tag).get(tag):
                 self.db_session.add(Tag(name=tag))
-        tags = [self.db_session.query(Tag).get(tag) for tag in
-                self.json_request['tags']]
 
-        author = self.db_session.query(User).get(self.json_request['author'])
+        tags = [self.db_session.query(Tag).get(tag) for tag in tag_names]
 
-        self.db_session.add(Article(uuid=uuid.uuid4().hex,
-                                    title=self.json_request['title'],
-                                    time_published=datetime.utcnow(),
-                                    content=self.json_request['content'],
-                                    tags=tags,
-                                    author=author))
+        author = self.db_session.query(User).get(self.authenticated_user)
+
+        article_id = uuid.uuid4().hex
+
+        article = Article(uuid=article_id,
+                          title=self.json_request['title'],
+                          time_published=datetime.utcnow(),
+                          content=self.json_request['content'],
+                          tags=tags,
+                          author=author)
+        self.db_session.add(article)
         self.db_session.commit()
+
         self.response.set_status(201)
+        self.response.headers['Location'] = '/articles/{}'.format(article_id)
+        self.json_response(article_to_json(article))
 
 
 class ArticleInstance(Endpoint):
