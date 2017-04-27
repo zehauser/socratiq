@@ -2,6 +2,8 @@ import json
 import webapp2
 import logging
 
+import sqlalchemy.exc
+
 from common import authentication
 from common.database import Session, User
 
@@ -31,6 +33,8 @@ DEFAULT_ERRORS = {
     501: "501 Not Implemented. The requested HTTP method has not yet been " +
          "implemented on this server.\r\n"
 }
+
+_ERR_PREFIX = '(1406, "Data too long for column \''
 
 
 class Endpoint(webapp2.RequestHandler):
@@ -65,7 +69,7 @@ class Endpoint(webapp2.RequestHandler):
     def get_user(self, userid):
         return self.db_session.query(User).get(userid)
 
-    def error(self, code, msg=None):
+    def error(self, code, msg=None, json=None):
         self.response.clear()
         self.response.set_status(code)
         self.response.headers['Content-Type'] = 'text/plain'
@@ -73,11 +77,24 @@ class Endpoint(webapp2.RequestHandler):
             self.response.headers['WWW-Authenticate'] = 'Bearer'
         if msg == None:
             msg = DEFAULT_ERRORS[code]
-        self.response.write(msg)
+        if json:
+            self.json_response(json)
+        else:
+            self.response.write(msg)
 
-    def handle_exception(self, exception, debug_mode):
-        logging.exception(exception)
-        self.error(500)
+    def handle_exception(self, exn, debug_mode):
+        if (isinstance(exn, sqlalchemy.exc.DataError)
+            and _ERR_PREFIX in exn.message):
+            column_start_i = exn.message.find(_ERR_PREFIX) + len(_ERR_PREFIX)
+            column_end_i = exn.message.find('\'', column_start_i)
+            column = exn.message[column_start_i:column_end_i]
+            self.error(422, json={
+                'code': 'ATTRIBUTE_LENGTH_EXCEEDED',
+                'attribute': column
+            })
+        else:
+            logging.exception(exn)
+            self.error(500)
 
     def get(self, *args, **kwargs):
         self.error(405)
@@ -132,12 +149,21 @@ def requires_authentication(as_param=None, as_key=None):
 
 def assert_json_matches_schema(schema, obj):
     if isinstance(schema, dict):
-        assert isinstance(obj, dict)
-        assert set(obj.keys()) == set(schema.keys())
+        assert isinstance(obj, dict), {'code': 'BODY_TYPE_ERROR',
+                                       'received': obj,
+                                       'expected': 'object'}
+        for k in set(schema.keys()):
+            assert k in obj.keys(), {'code': 'MISSING_BODY_KEY',
+                                     'expected': k}
+        for k in set(obj.keys()):
+            assert k in schema.keys(), {'code': 'UNEXPECTED_BODY_KEY',
+                                        'received': k}
         for key, type in schema.iteritems():
             assert_json_matches_schema(type, obj[key])
     elif isinstance(schema, list):
-        assert isinstance(obj, list)
+        assert isinstance(obj, list), {'code': 'BODY_TYPE_ERROR',
+                                       'received': obj,
+                                       'expected': 'array'}
         type = schema[0]
         for val in obj:
             assert_json_matches_schema(type, val)
@@ -145,7 +171,9 @@ def assert_json_matches_schema(schema, obj):
         type = schema
         if schema == str:
             type = unicode
-        assert isinstance(obj, type)
+        assert isinstance(obj, type), {'code': 'BODY_TYPE_ERROR',
+                                       'received': obj,
+                                       'expected': type.__name__}
 
 
 def request_schema(schema):
@@ -153,12 +181,14 @@ def request_schema(schema):
         def request_schema_decorator(self, *args, **kwargs):
             try:
                 if schema is None:
-                    assert self.request.body == ""
+                    assert self.request.body == "", {'code:' 'BODY_NOT_EMPTY'}
                 else:
                     self.json_request = json.loads(self.request.body)
                     assert_json_matches_schema(schema, self.json_request)
-            except (AssertionError, ValueError):
-                self.error(400)
+            except AssertionError, e:
+                self.error(400, json=e.message)
+            except ValueError:
+                self.error(400, json={'code': 'BODY_JSON_INVALID'})
             else:
                 handler_func(self, *args, **kwargs)
 

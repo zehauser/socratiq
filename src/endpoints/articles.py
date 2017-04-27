@@ -4,7 +4,6 @@ from datetime import datetime
 from common.database import Article, User, Tag
 from endpoint import Endpoint, request_schema, requires_authentication
 
-
 def article_to_json(article, snippet=False, follower=None):
     json = {
         'id': article.uuid,
@@ -38,6 +37,7 @@ class ArticleCollection(Endpoint):
     - POST publishes an article (requires authentication as author)
     """
 
+    @request_schema(None)
     def get(self):
         articles = self.db_session.query(Article).limit(10).all()
         articles = [
@@ -91,3 +91,25 @@ class ArticleInstance(Endpoint):
         else:
             json = article_to_json(article, follower=self.authenticated_user)
             self.json_response(json)
+
+
+class TagArticleCollection(Endpoint):
+    """ /tags/<tag>/articles
+    
+    Represents the collection of all published articles with the tag <tag>.
+    
+    - GET returns the collection 
+    """
+
+    @request_schema(None)
+    def get(self, tag):
+        tag = self.db_session.query(Tag).get(tag)
+        if not tag:
+            self.error(404)
+        else:
+            articles = tag.articles.limit(10)
+            articles = [
+                article_to_json(a, snippet=True, follower=self.authenticated_user)
+                for a in articles
+            ]
+            self.json_response(articles)

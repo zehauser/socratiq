@@ -31,3 +31,7 @@ authorized for the resource: `403 Forbidden`
 ### /articles endpoints
 
 [Click here to see documentation for the `/articles` endpoints.](docs/articles-docs.md)
+
+### /tags endpoints
+
+[Click here to see documentation for the `/tags` endpoints.](docs/tags-docs.md)

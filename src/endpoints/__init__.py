@@ -1,4 +1,4 @@
-from articles import ArticleInstance, ArticleCollection
+from articles import ArticleInstance, ArticleCollection, TagArticleCollection
 from followers import UserFollowerInstance, UserFollowerCollection
 from endpoint import NotFoundHandler
 from login import LoginServer
@@ -13,7 +13,6 @@ CommentLikeInstance = None
 UserArticleCollection = None
 TagCollection = None
 TagInstance = None
-TagArticleCollection = None
 TagFollowerCollection = None
 TagFollowerInstance = None
 
