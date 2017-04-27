@@ -53,6 +53,7 @@ class Endpoint(webapp2.RequestHandler):
         self.response.headers['Access-Control-Expose-Headers'] = (
             self.response.headers['Access-Control-Allow-Headers'])
         super(Endpoint, self).dispatch()
+        self.db_session.close()
 
     def json_response(self, obj):
         self.response.headers['Content-Type'] = 'application/json'
