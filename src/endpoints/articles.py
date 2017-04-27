@@ -11,7 +11,7 @@ def article_to_json(article, snippet=False, follower=None):
         'title': article.title,
         'author': {
             'name': article.author.name,
-            'id': article.author.id,
+            'userid': article.author.id,
             'institution': article.author.institution
         },
         'date': article.time_published.strftime('%B %d, %Y'),

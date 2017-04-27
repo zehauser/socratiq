@@ -20,7 +20,7 @@ Response:
         "id": "bdc4d94969c945bf9a394667a1543344",
         "title": "The Art of Foo: Baz Bar",
         "author": {
-            "id": "zehauser",
+            "userid": "zehauser",
             "name": "Zach Hauser",
             "institution": "Pomona College",
             "followed": true
@@ -55,7 +55,7 @@ Response:
     "id": "bdc4d94969c945bf9a394667a1543344",
     "title": "The Art of Foo: Baz Bar",
     "author": {
-        "id": "zehauser",
+        "userid": "zehauser",
         "name": "Zach Hauser",
         "institution": "Pomona College",
         "followed": true
