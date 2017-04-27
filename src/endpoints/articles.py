@@ -5,15 +5,19 @@ from common.database import Article, User, Tag
 from endpoint import Endpoint, request_schema, requires_authentication
 
 
-def article_to_json(article, follower=None):
+def article_to_json(article, snippet=False, follower=None):
     json = {
         'article_id': article.uuid,
         'author_id': article.author.id,
         'title': article.title,
         'author': article.author.name,
         'date': article.time_published.strftime('%B %d, %Y'),
-        'snippet': article.content[:247] + '...'
+        'tags': [tag.name for tag in article.tags if tag.name != 'NYT_scraped']
     }
+    if snippet:
+        json['snippet'] = article.content[:247] + '...'
+    else:
+        json['content'] = article.content
     if follower and follower != article.author.id:
         if article.author.followers.filter(User.id == follower).count() == 1:
             json['followed'] = True
@@ -33,8 +37,10 @@ class ArticleCollection(Endpoint):
 
     def get(self):
         articles = self.db_session.query(Article).limit(10).all()
-        articles = [article_to_json(a, self.authenticated_user)
-                    for a in articles]
+        articles = [
+            article_to_json(a, snippet=True, follower=self.authenticated_user)
+            for a in articles
+        ]
         self.json_response(articles)
 
     @request_schema({'author': str, 'title': str,
@@ -74,11 +80,6 @@ class ArticleInstance(Endpoint):
         if not article:
             self.error(404)
         else:
-            self.json_response({
-                'id': article.uuid,
-                'author': article.author_id,
-                'title': article.title,
-                'time_published': article_id.time_published,
-                'content': article.content,
-                'tags': [tag.name for tag in article.tags]
-            })
+            json = article_to_json(article, follower=self.authenticated_user)
+            self.json_response(json)
+
