@@ -8,3 +8,5 @@ dependencies:
 clean:
 	rm -rf venv
 	rm -f gaelib
+	rm -f *.pyc
+	rm -f */*.pyc
