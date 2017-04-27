@@ -21,7 +21,7 @@ Response:
 } 
 ```
 
-# /users/\<userid\>
+## /users/\<userid\>
 
 ### GET /users/\<userid\>
 
@@ -39,6 +39,7 @@ Successful response:
 {
   "userid": "zehauser",
   "name": "Zach Hauser",
+  "institution": "Pomona College",
   "followed": false
 }
 ```
@@ -59,7 +60,8 @@ PUT /users/zehauser
 
 {
   "name": "Zach Hauser",
-  "email": "zehauser@foo.bar",
+  "email": "zack.hauser@pomona.edu",
+  "institution": "Pomona College",
   "password": "hunter2"
 }
 ```
@@ -72,6 +74,8 @@ Authorization: Bearer eyJ0eXAiOiJKV1Q.eyJleGFtcGQ5M.PRyeTAp
 
 
 Error response (userid already exists): `409 Conflict`
+
+Error response (email domain does not match institution's): `422 Unprocessable Entity`
 
 ## /users/<userid_1>/followers/<userid_2>
 

@@ -22,6 +22,9 @@ DEFAULT_ERRORS = {
 
     409: "409 Conflict. The specified resource already exists.\r\n",
 
+    422: "422 Unprocessable Entity. Some element(s) of the request you " +
+         "submitted violate preconditions of this resource.\r\n",
+
     500: "500 Internal Server Error. Sorry - no further information is " +
          "available.\r\n",
 

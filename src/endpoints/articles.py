@@ -7,10 +7,13 @@ from endpoint import Endpoint, request_schema, requires_authentication
 
 def article_to_json(article, snippet=False, follower=None):
     json = {
-        'article_id': article.uuid,
-        'author_id': article.author.id,
+        'id': article.uuid,
         'title': article.title,
-        'author': article.author.name,
+        'author': {
+            'name': article.author.name,
+            'id': article.author.id,
+            'institution': article.author.institution
+        },
         'date': article.time_published.strftime('%B %d, %Y'),
         'tags': [tag.name for tag in article.tags if tag.name != 'NYT_scraped']
     }
@@ -20,9 +23,9 @@ def article_to_json(article, snippet=False, follower=None):
         json['content'] = article.content
     if follower and follower != article.author.id:
         if article.author.followers.filter(User.id == follower).count() == 1:
-            json['followed'] = True
+            json['author']['followed'] = True
         else:
-            json['followed'] = False
+            json['author']['followed'] = False
     return json
 
 
@@ -82,4 +85,3 @@ class ArticleInstance(Endpoint):
         else:
             json = article_to_json(article, follower=self.authenticated_user)
             self.json_response(json)
-

@@ -13,7 +13,7 @@ _CONNECTION_STR = 'mysql+mysqldb://{}@/{}?unix_socket=/cloudsql/{}'.format(
 
 _ECHO = False
 if not os.getenv('SERVER_SOFTWARE', '').startswith('Google App Engine/'):
-    # _ECHO = True
+    #_ECHO = True
     _CONNECTION_STR = "mysql+mysqldb://root@127.0.0.1:9501/v3"
 
 _engine = create_engine(_CONNECTION_STR, echo=_ECHO)
@@ -46,6 +46,7 @@ class User(_Base):
     id = Column(String(50), primary_key=True)
     name = Column(String(50), nullable=False)
     email = Column(String(50), nullable=False)
+    institution = Column(String(125), ForeignKey('Institutions.name'), nullable=True) # migration
     time_created = Column(DateTime, nullable=False)
 
     password_data = relationship('PasswordData')
@@ -112,5 +113,9 @@ class Comment(_Base):
     author = relationship('User')
     article = relationship('Article')
 
+class Institution(_Base):
+    __tablename__ = 'Institutions'
+    name = Column(String(125), primary_key=True)
+    domain = Column(String(50), nullable=False)
 
 _Base.metadata.create_all(_engine, checkfirst=True)
