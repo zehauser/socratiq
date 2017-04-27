@@ -13,7 +13,7 @@ _CONNECTION_STR = 'mysql+mysqldb://{}@/{}?unix_socket=/cloudsql/{}'.format(
 
 _ECHO = False
 if not os.getenv('SERVER_SOFTWARE', '').startswith('Google App Engine/'):
-    #_ECHO = True
+    # _ECHO = True
     _CONNECTION_STR = "mysql+mysqldb://root@127.0.0.1:9501/v3"
 
 _engine = create_engine(_CONNECTION_STR, echo=_ECHO)
@@ -46,7 +46,8 @@ class User(_Base):
     id = Column(String(50), primary_key=True)
     name = Column(String(50), nullable=False)
     email = Column(String(50), nullable=False)
-    institution = Column(String(125), ForeignKey('Institutions.name'), nullable=True) # migration
+    institution = Column(String(125), ForeignKey('Institutions.name'),
+                         nullable=True)  # migration
     time_created = Column(DateTime, nullable=False)
 
     password_data = relationship('PasswordData')
@@ -59,7 +60,8 @@ class User(_Base):
                                   primaryjoin=user_follows.c.follower == id,
                                   secondaryjoin=user_follows.c.followee == id)
     tags_followed = relationship('Tag', lazy='dynamic', secondary=tag_follows)
-    articles_authored = relationship('Article', back_populates='author')
+    articles_authored = relationship('Article', lazy='dynamic',
+                                     back_populates='author')
 
 
 class PasswordData(_Base):
@@ -91,14 +93,14 @@ class Article(_Base):
     content = Column(Text, nullable=False)
 
     author = relationship('User', back_populates='articles_authored')
-    tags = relationship('Tag', secondary=_article_tags,
+    tags = relationship('Tag', lazy='dynamic', secondary=_article_tags,
                         primaryjoin=_article_tags.c.article == uuid)
 
 
 # Not sure why this can't go in the initial Tag class definition, but
 # SQLAlchemy throws a fit (but only when running on actual GAE, not when
 # using the local dev server).
-Tag.articles = relationship('Article', secondary=_article_tags,
+Tag.articles = relationship('Article', lazy='dynamic', secondary=_article_tags,
                             primaryjoin=_article_tags.c.tag == Tag.name)
 
 
@@ -113,9 +115,11 @@ class Comment(_Base):
     author = relationship('User')
     article = relationship('Article')
 
+
 class Institution(_Base):
     __tablename__ = 'Institutions'
     name = Column(String(125), primary_key=True)
     domain = Column(String(50), nullable=False)
+
 
 _Base.metadata.create_all(_engine, checkfirst=True)

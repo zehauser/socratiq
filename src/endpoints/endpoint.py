@@ -39,7 +39,6 @@ _ERR_PREFIX = '(1406, "Data too long for column \''
 
 class Endpoint(webapp2.RequestHandler):
     def dispatch(self):
-        self.db_session = Session()
         self.authenticated_user = None
         if 'Authorization' in self.request.headers:
             auth_header = self.request.headers['Authorization']
@@ -50,6 +49,7 @@ class Endpoint(webapp2.RequestHandler):
                 return
             else:
                 self.authenticated_user = user
+
         self.response.headers['Access-Control-Allow-Origin'] = (
             self.request.headers.get('Origin', '*'))
         self.response.headers['Access-Control-Allow-Credentials'] = 'true'
@@ -59,6 +59,8 @@ class Endpoint(webapp2.RequestHandler):
             'Authorization, Content-Length, Content-Type')
         self.response.headers['Access-Control-Expose-Headers'] = (
             self.response.headers['Access-Control-Allow-Headers'])
+
+        self.db_session = Session()
         super(Endpoint, self).dispatch()
         self.db_session.close()
 
@@ -85,6 +87,7 @@ class Endpoint(webapp2.RequestHandler):
     def handle_exception(self, exn, debug_mode):
         if (isinstance(exn, sqlalchemy.exc.DataError)
             and _ERR_PREFIX in exn.message):
+            print exn.message
             column_start_i = exn.message.find(_ERR_PREFIX) + len(_ERR_PREFIX)
             column_end_i = exn.message.find('\'', column_start_i)
             column = exn.message[column_start_i:column_end_i]
@@ -136,8 +139,8 @@ def requires_authentication(as_param=None, as_key=None):
                 self.error(401)
             elif as_param and kwargs[as_param] != self.authenticated_user:
                 self.error(403)
-            elif as_key and self.json_request[
-                as_key] != self.authenticated_user:
+            elif as_key and (self.json_request[as_key]
+                                 != self.authenticated_user):
                 self.error(403)
             else:
                 handler_func(self, *args, **kwargs)
@@ -147,23 +150,27 @@ def requires_authentication(as_param=None, as_key=None):
     return requires_authentication_decorator_creator
 
 
+class SchemaError(StandardError):
+    def __init__(self, code, **kwargs):
+        kwargs['code'] = code
+        self.message = kwargs
+
+
 def assert_json_matches_schema(schema, obj):
     if isinstance(schema, dict):
-        assert isinstance(obj, dict), {'code': 'BODY_TYPE_ERROR',
-                                       'received': obj,
-                                       'expected': 'object'}
+        if not isinstance(obj, dict):
+            raise SchemaError('EXPECTED_JSON_OBJECT', received=obj)
         for k in set(schema.keys()):
-            assert k in obj.keys(), {'code': 'MISSING_BODY_KEY',
-                                     'expected': k}
+            if k not in obj.keys():
+                raise SchemaError('MISSING_BODY_KEY', expected=k)
         for k in set(obj.keys()):
-            assert k in schema.keys(), {'code': 'UNEXPECTED_BODY_KEY',
-                                        'received': k}
+            if k not in schema.keys():
+                raise SchemaError('UNEXPECTED_BODY_KEY', received=k)
         for key, type in schema.iteritems():
             assert_json_matches_schema(type, obj[key])
     elif isinstance(schema, list):
-        assert isinstance(obj, list), {'code': 'BODY_TYPE_ERROR',
-                                       'received': obj,
-                                       'expected': 'array'}
+        if not isinstance(obj, list):
+            raise SchemaError('EXPECTED_JSON_ARRAY', received=obj)
         type = schema[0]
         for val in obj:
             assert_json_matches_schema(type, val)
@@ -171,9 +178,9 @@ def assert_json_matches_schema(schema, obj):
         type = schema
         if schema == str:
             type = unicode
-        assert isinstance(obj, type), {'code': 'BODY_TYPE_ERROR',
-                                       'received': obj,
-                                       'expected': type.__name__}
+        if not isinstance(obj, type):
+            raise SchemaError('TYPE_MISMATCH', received=obj,
+                              expected=schema.__name__)
 
 
 def request_schema(schema):
@@ -181,11 +188,12 @@ def request_schema(schema):
         def request_schema_decorator(self, *args, **kwargs):
             try:
                 if schema is None:
-                    assert self.request.body == "", {'code:' 'BODY_NOT_EMPTY'}
+                    if self.request.body != "":
+                        raise SchemaError('BODY_NOT_EMPTY')
                 else:
                     self.json_request = json.loads(self.request.body)
                     assert_json_matches_schema(schema, self.json_request)
-            except AssertionError, e:
+            except SchemaError, e:
                 self.error(400, json=e.message)
             except ValueError:
                 self.error(400, json={'code': 'BODY_JSON_INVALID'})
