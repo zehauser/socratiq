@@ -4,8 +4,9 @@ import logging
 
 import sqlalchemy.exc
 
-from common import authentication
+from common import authentication, running_in_production
 from common.database import Session, User
+from common.notify import notify_administrator
 
 DEFAULT_ERRORS = {
     400: "400 Bad Request. The request body does not conform to the schema " +
@@ -39,6 +40,7 @@ _ERR_PREFIX = '(1406, "Data too long for column \''
 
 class Endpoint(webapp2.RequestHandler):
     def dispatch(self):
+
         self.authenticated_user = None
         if 'Authorization' in self.request.headers:
             auth_header = self.request.headers['Authorization']
@@ -98,6 +100,8 @@ class Endpoint(webapp2.RequestHandler):
         else:
             logging.exception(exn)
             self.error(500)
+            if running_in_production():
+                notify_administrator(self.request.url, exn)
 
     def get(self, *args, **kwargs):
         self.error(405)
@@ -139,7 +143,7 @@ def requires_authentication(as_param=None, as_key=None):
                 self.error(401)
             elif as_param and kwargs[as_param] != self.authenticated_user:
                 self.error(403)
-            elif as_key and (self.json_request[as_key]
+            elif as_key and (self.request_data[as_key]
                                  != self.authenticated_user):
                 self.error(403)
             else:
@@ -183,22 +187,34 @@ def assert_json_matches_schema(schema, obj):
                               expected=schema.__name__)
 
 
-def request_schema(schema):
+def request_schema(required_body=None, optional_params=None):
     def request_schema_decorator_creator(handler_func):
         def request_schema_decorator(self, *args, **kwargs):
             try:
-                if schema is None:
+                self.request_data = {}
+                if required_body is None:
                     if self.request.body != "":
                         raise SchemaError('BODY_NOT_EMPTY')
                 else:
-                    self.json_request = json.loads(self.request.body)
-                    assert_json_matches_schema(schema, self.json_request)
+                    self.request_data = json.loads(self.request.body)
+                    assert_json_matches_schema(required_body, self.request_data)
+
+                for k, v in self.request.GET.items():
+                    if k not in optional_params:
+                        raise SchemaError('UNEXPECTED_QUERY_PARAM', received=k)
+                    if k in self.request_data:
+                        raise SchemaError('DUPLICATE_QUERY_PARAM', received=k)
+                    self.request_data[k] = v
+
             except SchemaError, e:
                 self.error(400, json=e.message)
             except ValueError:
                 self.error(400, json={'code': 'BODY_JSON_INVALID'})
             else:
                 handler_func(self, *args, **kwargs)
+
+
+
 
         return request_schema_decorator
 

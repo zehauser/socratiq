@@ -8,6 +8,7 @@ from endpoint import Endpoint, request_schema
 def email_has_domain(email, domain):
     return email.endswith('@' + domain) or email.endswith('.' + domain)
 
+
 class UserCollection(Endpoint):
     """ /users
 
@@ -18,7 +19,7 @@ class UserCollection(Endpoint):
 
     @request_schema(None)
     def get(self):
-        users = [user.id for user in self.db_session.query(User).all()]
+        users = self.db_session.query(User.id).all()
         self.json_response({'user_count': len(users), 'users': users})
 
 
@@ -57,18 +58,18 @@ class UserInstance(Endpoint):
         if self.get_user(userid):
             self.error(409)
             return
-        email = self.json_request['email']
-        institution_name = self.json_request['institution']
+        email = self.request_data['email']
+        institution_name = self.request_data['institution']
         institution = self.db_session.query(Institution).get(institution_name)
         if not (institution and email_has_domain(email, institution.domain)):
             self.error(422)
         else:
             self.db_session.add(User(id=userid,
-                                     name=self.json_request['name'],
+                                     name=self.request_data['name'],
                                      email=email,
                                      institution=institution_name,
                                      time_created=datetime.utcnow()))
-            password = self.json_request['password']
+            password = self.request_data['password']
             password_data = authentication.create_password_data(userid,
                                                                 password)
             self.db_session.add(password_data)

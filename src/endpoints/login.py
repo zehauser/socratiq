@@ -6,11 +6,11 @@ from endpoint import Endpoint, request_schema
 class LoginServer(Endpoint):
     @request_schema({'userid': str, 'password': str})
     def post(self):
-        userid = self.json_request['userid']
+        userid = self.request_data['userid']
         token = authentication.issue_token(
             userid,
             self.db_session.query(PasswordData).get(userid),
-            self.json_request['password']
+            self.request_data['password']
         )
         if token:
             self.response.set_status(204)

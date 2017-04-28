@@ -6,14 +6,16 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, relationship
 
+from common import running_in_production
+
 _CONNECTION_STR = 'mysql+mysqldb://{}@/{}?unix_socket=/cloudsql/{}'.format(
     os.environ.get('CLOUDSQL_USER'), os.environ.get('CLOUDSQL_DB'),
     os.environ.get('CLOUDSQL_CONNECTION_NAME')
 )
 
 _ECHO = False
-if not os.getenv('SERVER_SOFTWARE', '').startswith('Google App Engine/'):
-    # _ECHO = True
+if not running_in_production():
+    #_ECHO = True
     _CONNECTION_STR = "mysql+mysqldb://root@127.0.0.1:9501/v3"
 
 _engine = create_engine(_CONNECTION_STR, echo=_ECHO)
@@ -89,7 +91,7 @@ class Article(_Base):
     uuid = Column(String(32), primary_key=True)
     author_id = Column(String(50), ForeignKey('Users.id'), nullable=False)
     title = Column(String(200), nullable=False)
-    time_published = Column(DateTime, nullable=False)
+    time_published = Column(DateTime, nullable=False, index=True)
     content = Column(Text, nullable=False)
 
     author = relationship('User', back_populates='articles_authored')

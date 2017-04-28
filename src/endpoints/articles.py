@@ -1,8 +1,10 @@
 import uuid
 from datetime import datetime
 
+from sqlalchemy.sql import func
 from common.database import Article, User, Tag
 from endpoint import Endpoint, request_schema, requires_authentication
+
 
 def article_to_json(article, snippet=False, follower=None):
     json = {
@@ -37,9 +39,35 @@ class ArticleCollection(Endpoint):
     - POST publishes an article (requires authentication as author)
     """
 
-    @request_schema(None)
+    @request_schema(optional_params=['tag', 'author', 'author_institution',
+                                     'month', 'year'])
     def get(self):
-        articles = self.db_session.query(Article).limit(10).all()
+        if 'tag' in self.request_data:
+            tag = self.db_session.query(Tag).get(self.request_data['tag'])
+            if not tag:
+                self.json_response([])
+                return
+            articles = tag.articles
+        else:
+            articles = self.db_session.query(Article)
+
+        if 'author' in self.request_data:
+            articles = articles.filter_by(author_id=self.request_data['author'])
+        if 'author_institution' in self.request_data:
+            articles = articles.filter(
+                Article.author.has(institution=self.request_data[
+                    'author_institution']))
+        if 'year' in self.request_data:
+            articles = articles.filter(
+                func.YEAR(Article.time_published) ==
+                self.request_data['year'])
+        if 'month' in self.request_data:
+            articles = articles.filter(
+                func.MONTH(Article.time_published) ==
+                self.request_data['month'])
+
+        articles = articles.order_by(
+            Article.time_published.desc()).limit(10).all()
         articles = [
             article_to_json(a, snippet=True, follower=self.authenticated_user)
             for a in articles
@@ -50,7 +78,7 @@ class ArticleCollection(Endpoint):
     @requires_authentication()
     def post(self):
 
-        tag_names = self.json_request['tags']
+        tag_names = self.request_data['tags']
         for tag in tag_names:
             if not self.db_session.query(Tag).get(tag):
                 self.db_session.add(Tag(name=tag))
@@ -62,9 +90,9 @@ class ArticleCollection(Endpoint):
         article_id = uuid.uuid4().hex
 
         article = Article(uuid=article_id,
-                          title=self.json_request['title'],
+                          title=self.request_data['title'],
                           time_published=datetime.utcnow(),
-                          content=self.json_request['content'],
+                          content=self.request_data['content'],
                           tags=tags,
                           author=author)
         self.db_session.add(article)
@@ -107,9 +135,11 @@ class TagArticleCollection(Endpoint):
         if not tag:
             self.error(404)
         else:
-            articles = tag.articles.limit(10)
+            articles = tag.articles.order_by(
+                Article.time_published.desc()).limit(10)
             articles = [
-                article_to_json(a, snippet=True, follower=self.authenticated_user)
+                article_to_json(a, snippet=True,
+                                follower=self.authenticated_user)
                 for a in articles
             ]
             self.json_response(articles)

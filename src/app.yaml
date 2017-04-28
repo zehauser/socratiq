@@ -10,6 +10,8 @@ handlers:
 libraries:
 - name: MySQLdb
   version: "latest"
+- name: ssl
+  version: latest
 - name: pycrypto
   version: "latest"
 
@@ -32,7 +34,6 @@ skip_files:
 - ^gae-lib/pkg_resources.*
 - ^gae-lib/pyparsing.*
 - ^gae-lib/setuptools.*
-- ^gae-lib/six.*
 - ^gae-lib/venv.*
 - ^gae-lib/webapp.*
 - ^gae-lib/wheel.*
