@@ -1,6 +1,6 @@
-dependencies:
+dependencies: clean
 	virtualenv venv
-	test -h gaelib || ln -s venv/lib/python2.7/site-packages gae-lib
+	test -h gae-lib || ln -s venv/lib/python2.7/site-packages gae-lib
 	source venv/bin/activate ; \
 	pip install -r requirements.txt ; \
 	deactivate

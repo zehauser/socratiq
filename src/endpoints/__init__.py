@@ -4,15 +4,15 @@ from endpoint import NotFoundHandler
 from login import LoginServer
 from users import UserInstance, UserCollection
 
-ArticleLikeCollection = None
-ArticleLikeInstance = None
-CommentCollection = None
-CommentInstance = None
-CommentLikeCollection = None
-CommentLikeInstance = None
-UserArticleCollection = None
-TagCollection = None
-TagInstance = None
-TagFollowerCollection = None
-TagFollowerInstance = None
+ArticleLikeCollection = NotFoundHandler
+ArticleLikeInstance = NotFoundHandler
+CommentCollection = NotFoundHandler
+CommentInstance = NotFoundHandler
+CommentLikeCollection = NotFoundHandler
+CommentLikeInstance = NotFoundHandler
+UserArticleCollection = NotFoundHandler
+TagCollection = NotFoundHandler
+TagInstance = NotFoundHandler
+TagFollowerCollection = NotFoundHandler
+TagFollowerInstance = NotFoundHandler
 

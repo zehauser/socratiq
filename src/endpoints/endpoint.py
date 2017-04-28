@@ -5,6 +5,7 @@ import logging
 import sqlalchemy.exc
 
 from common import authentication, running_in_production
+from common.authentication import InvalidAuthenticationError
 from common.database import Session, User
 from common.notify import notify_administrator
 
@@ -35,23 +36,30 @@ DEFAULT_ERRORS = {
          "implemented on this server.\r\n"
 }
 
-_ERR_PREFIX = '(1406, "Data too long for column \''
-
 
 class Endpoint(webapp2.RequestHandler):
-    def dispatch(self):
+    authenticated_user = None
+    db_session = Session()
+    request_data = {}
 
-        self.authenticated_user = None
+    def dispatch(self):
+        try:
+            self._process_auth_header()
+            self._add_cors_headers()
+            super(Endpoint, self).dispatch()
+            self.db_session.close()
+        except InvalidAuthenticationError:
+            self.error(401)
+
+    def _process_auth_header(self):
         if 'Authorization' in self.request.headers:
             auth_header = self.request.headers['Authorization']
+            if not auth_header.startswith('Bearer '):
+                raise InvalidAuthenticationError
             auth_token = auth_header[7:]  # len("Bearer ") is 7
-            user = authentication.decode_token(auth_token)
-            if not auth_header.startswith('Bearer ') or not user:
-                self.error(401)
-                return
-            else:
-                self.authenticated_user = user
+            self.authenticated_user = authentication.decode_token(auth_token)
 
+    def _add_cors_headers(self):
         self.response.headers['Access-Control-Allow-Origin'] = (
             self.request.headers.get('Origin', '*'))
         self.response.headers['Access-Control-Allow-Credentials'] = 'true'
@@ -62,16 +70,9 @@ class Endpoint(webapp2.RequestHandler):
         self.response.headers['Access-Control-Expose-Headers'] = (
             self.response.headers['Access-Control-Allow-Headers'])
 
-        self.db_session = Session()
-        super(Endpoint, self).dispatch()
-        self.db_session.close()
-
     def json_response(self, obj):
         self.response.headers['Content-Type'] = 'application/json'
         self.response.write(json.dumps(obj) + "\r\n")
-
-    def get_user(self, userid):
-        return self.db_session.query(User).get(userid)
 
     def error(self, code, msg=None, json=None):
         self.response.clear()
@@ -87,10 +88,10 @@ class Endpoint(webapp2.RequestHandler):
             self.response.write(msg)
 
     def handle_exception(self, exn, debug_mode):
+        ERR_PREFIX = '(1406, "Data too long for column \''
         if (isinstance(exn, sqlalchemy.exc.DataError)
-            and _ERR_PREFIX in exn.message):
-            print exn.message
-            column_start_i = exn.message.find(_ERR_PREFIX) + len(_ERR_PREFIX)
+            and ERR_PREFIX in exn.message):
+            column_start_i = exn.message.find(ERR_PREFIX) + len(ERR_PREFIX)
             column_end_i = exn.message.find('\'', column_start_i)
             column = exn.message[column_start_i:column_end_i]
             self.error(422, json={
@@ -191,7 +192,6 @@ def request_schema(required_body=None, optional_params=None):
     def request_schema_decorator_creator(handler_func):
         def request_schema_decorator(self, *args, **kwargs):
             try:
-                self.request_data = {}
                 if required_body is None:
                     if self.request.body != "":
                         raise SchemaError('BODY_NOT_EMPTY')
@@ -212,9 +212,6 @@ def request_schema(required_body=None, optional_params=None):
                 self.error(400, json={'code': 'BODY_JSON_INVALID'})
             else:
                 handler_func(self, *args, **kwargs)
-
-
-
 
         return request_schema_decorator
 

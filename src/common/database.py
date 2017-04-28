@@ -1,5 +1,6 @@
 import os
 
+from sys import argv
 from sqlalchemy import Column, String, DateTime, LargeBinary, ForeignKey, Table, \
     Text
 from sqlalchemy.ext.declarative import declarative_base
@@ -13,12 +14,10 @@ _CONNECTION_STR = 'mysql+mysqldb://{}@/{}?unix_socket=/cloudsql/{}'.format(
     os.environ.get('CLOUDSQL_CONNECTION_NAME')
 )
 
-_ECHO = False
 if not running_in_production():
-    #_ECHO = True
     _CONNECTION_STR = "mysql+mysqldb://root@127.0.0.1:9501/v3"
 
-_engine = create_engine(_CONNECTION_STR, echo=_ECHO)
+_engine = create_engine(_CONNECTION_STR, echo='--echo' in argv)
 Session = sessionmaker(bind=_engine)
 _Base = declarative_base()
 _Base.metadata.bind = _engine
@@ -30,13 +29,13 @@ class Secret(_Base):
     secret_value = Column(LargeBinary(128), nullable=False)
 
 
-user_follows = Table(
+_user_follows = Table(
     'UserFollows', _Base.metadata,
     Column('follower', String(50), ForeignKey('Users.id'), primary_key=True),
     Column('followee', String(50), ForeignKey('Users.id'), primary_key=True)
 )
 
-tag_follows = Table(
+_tag_follows = Table(
     'TagFollows', _Base.metadata,
     Column('follower', String(50), ForeignKey('Users.id'), primary_key=True),
     Column('tag', String(100), ForeignKey('Tags.name'), primary_key=True)
@@ -49,19 +48,19 @@ class User(_Base):
     name = Column(String(50), nullable=False)
     email = Column(String(50), nullable=False)
     institution = Column(String(125), ForeignKey('Institutions.name'),
-                         nullable=True)  # migration
+                         nullable=False)
     time_created = Column(DateTime, nullable=False)
 
     password_data = relationship('PasswordData')
     followers = relationship('User', lazy='dynamic',
-                             secondary=user_follows,
-                             primaryjoin=user_follows.c.followee == id,
-                             secondaryjoin=user_follows.c.follower == id)
+                             secondary=_user_follows,
+                             primaryjoin=_user_follows.c.followee == id,
+                             secondaryjoin=_user_follows.c.follower == id)
     users_followed = relationship('User', lazy='dynamic',
-                                  secondary=user_follows,
-                                  primaryjoin=user_follows.c.follower == id,
-                                  secondaryjoin=user_follows.c.followee == id)
-    tags_followed = relationship('Tag', lazy='dynamic', secondary=tag_follows)
+                                  secondary=_user_follows,
+                                  primaryjoin=_user_follows.c.follower == id,
+                                  secondaryjoin=_user_follows.c.followee == id)
+    tags_followed = relationship('Tag', lazy='dynamic', secondary=_tag_follows)
     articles_authored = relationship('Article', lazy='dynamic',
                                      back_populates='author')
 

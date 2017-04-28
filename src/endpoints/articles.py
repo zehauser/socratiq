@@ -23,7 +23,7 @@ def article_to_json(article, snippet=False, follower=None):
     else:
         json['content'] = article.content
     if follower and follower != article.author.id:
-        if article.author.followers.filter(User.id == follower).count() == 1:
+        if article.author.followers.filter_by(id=follower).count() == 1:
             json['author']['followed'] = True
         else:
             json['author']['followed'] = False
@@ -74,16 +74,17 @@ class ArticleCollection(Endpoint):
         ]
         self.json_response(articles)
 
+    def get_or_create_tag(self, tag_name):
+        tag = self.db_session.query(Tag).get(tag_name)
+        if not tag:
+            self.db_session.add(Tag(name=tag_name))
+            self.db_session.query(Tag).get(tag_name)
+        return tag
+
     @request_schema({'title': str, 'content': str, 'tags': [str]})
     @requires_authentication()
     def post(self):
-
-        tag_names = self.request_data['tags']
-        for tag in tag_names:
-            if not self.db_session.query(Tag).get(tag):
-                self.db_session.add(Tag(name=tag))
-
-        tags = [self.db_session.query(Tag).get(tag) for tag in tag_names]
+        tags = [self.get_or_create_tag(tag) for tag in tagss]
 
         author = self.db_session.query(User).get(self.authenticated_user)
 

@@ -34,7 +34,7 @@ class UserInstance(Endpoint):
 
     @request_schema(None)
     def get(self, userid):
-        user = self.get_user(userid)
+        user = self.db_session.query(User).get(userid)
         if user:
             response = {
                 'userid': userid,
@@ -42,9 +42,8 @@ class UserInstance(Endpoint):
                 'institution': user.institution
             }
             if self.authenticated_user and self.authenticated_user != userid:
-                if (user.followers
-                            .filter(User.id == self.authenticated_user)
-                            .count() == 1):
+                if (user.followers.filter_by(
+                        id=self.authenticated_user).count() == 1):
                     response['followed'] = True
                 else:
                     response['followed'] = False
@@ -55,7 +54,7 @@ class UserInstance(Endpoint):
     @request_schema({'name': str, 'email': str, 'password': str,
                      'institution': str})
     def put(self, userid):
-        if self.get_user(userid):
+        if self.db_session.query(User).get(userid):
             self.error(409)
             return
         email = self.request_data['email']
