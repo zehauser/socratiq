@@ -1,7 +1,8 @@
 from common import authentication
 from common.authentication import InvalidAuthenticationError
 from common.database import PasswordData
-from endpoint import Endpoint, request_schema
+from endpoint import Endpoint
+from endpoints.decorators import request_schema
 
 
 class LoginServer(Endpoint):

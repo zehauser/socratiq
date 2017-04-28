@@ -3,7 +3,8 @@ from datetime import datetime
 
 from sqlalchemy.sql import func
 from common.database import Article, User, Tag
-from endpoint import Endpoint, request_schema, requires_authentication
+from endpoint import Endpoint
+from endpoints.decorators import requires_authentication, request_schema
 
 
 def article_to_json(article, snippet=False, follower=None):

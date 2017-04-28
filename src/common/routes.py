@@ -31,5 +31,7 @@ app = webapp2.WSGIApplication([
 
     webapp2.Route('/login', LoginServer),
 
+    webapp2.Route('/test_error', TestErrorHandler),
+
     webapp2.Route('<:.*>', NotFoundHandler)
 ], debug=False)

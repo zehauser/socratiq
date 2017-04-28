@@ -2,7 +2,8 @@ from datetime import datetime
 
 from common import authentication
 from common.database import User, Institution
-from endpoint import Endpoint, request_schema
+from endpoint import Endpoint
+from endpoints.decorators import request_schema
 
 
 def email_has_domain(email, domain):

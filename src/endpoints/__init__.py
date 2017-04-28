@@ -6,7 +6,6 @@ from users import UserInstance, UserCollection
 
 ArticleLikeCollection = NotFoundHandler
 ArticleLikeInstance = NotFoundHandler
-CommentCollection = NotFoundHandler
 CommentInstance = NotFoundHandler
 CommentLikeCollection = NotFoundHandler
 CommentLikeInstance = NotFoundHandler
@@ -15,4 +14,8 @@ TagCollection = NotFoundHandler
 TagInstance = NotFoundHandler
 TagFollowerCollection = NotFoundHandler
 TagFollowerInstance = NotFoundHandler
+CommentCollection = NotFoundHandler
 
+class TestErrorHandler(endpoint.Endpoint):
+    def get(self):
+        raise StandardError("test exception")
