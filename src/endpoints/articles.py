@@ -6,20 +6,19 @@ from sqlalchemy.sql import func
 from common.database import Article, User, Tag, userid_does_follow
 from endpoint import Endpoint
 from endpoints.decorators import requires_authentication, request_schema
+from endpoints.tags import tag_to_json
+from endpoints.users import user_to_json
 
 
 def article_to_json(article, snippet=False, follower=None):
     json = {
         'id': article.uuid,
         'title': article.title,
-        'author': {
-            'name': article.author.name,
-            'userid': article.author.id,
-            'institution': article.author.institution
-        },
+        'author': user_to_json(article.author, follower),
         'date': article.time_published.strftime('%B %d, %Y'),
-        'tags': [tag.name for tag in article.tags if tag.name != 'NYT_scraped']
+        'tags': [t.name for t in article.tags.all()]
     }
+
     if snippet:
         if len(article.content) < 250:
             json['snippet'] = article.content
@@ -27,11 +26,7 @@ def article_to_json(article, snippet=False, follower=None):
             json['snippet'] = article.content[:247].rstrip('.,!?; \n') + '...'
     else:
         json['content'] = article.content
-    if follower and follower != article.author.id:
-        if userid_does_follow(follower_id=follower, user=article.author):
-            json['author']['followed'] = True
-        else:
-            json['author']['followed'] = False
+
     return json
 
 
@@ -87,7 +82,7 @@ class ArticleCollection(Endpoint):
                 func.MONTH(Article.time_published) ==
                 self.request_data['month'])
 
-        limit = 500 if infinite else 10
+        limit = 500 if infinite else 30
         articles = articles.order_by(
             Article.time_published.desc()).limit(limit).all()
         articles = [

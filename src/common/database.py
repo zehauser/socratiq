@@ -97,6 +97,7 @@ class Article(_Base):
     author = relationship('User', back_populates='articles_authored')
     tags = relationship('Tag', lazy='dynamic', secondary=_article_tags,
                         primaryjoin=_article_tags.c.article == uuid)
+    # comments = relationship('Comment', lazy='dynamic')
 
 
 # Not sure why this can't go in the initial Tag class definition, but
@@ -115,7 +116,7 @@ class Comment(_Base):
     content = Column(Text, nullable=False)
 
     author = relationship('User')
-    article = relationship('Article')
+    article = relationship('Article', backref='comments')
 
 
 class Institution(_Base):
@@ -134,3 +135,5 @@ def userid_does_follow(follower_id, tag=None, user=None):
         return user.followers.filter_by(id=follower_id).count() == 1
     if tag:
         return tag.followers.filter_by(id=follower_id).count() == 1
+
+# logging.getLogger('sqlalchemy.engine').setLevel(logging.INFO)

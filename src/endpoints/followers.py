@@ -1,4 +1,4 @@
-from common.database import User, userid_does_follow
+from common.database import User, userid_does_follow, Tag
 from endpoint import Endpoint
 from endpoints.decorators import requires_authentication, request_schema
 
@@ -22,6 +22,48 @@ class UserFollowerCollection(Endpoint):
                 { 'followee': followee_id, 'follower_count': len(followers),
                   'followers': followers })
 
+
+class TagFollowerInstance(Endpoint):
+
+    @request_schema(None)
+    @requires_authentication(as_param='follower_id')
+    def get(self, tag, follower_id):
+        tag = self.db_session.query(Tag).get(tag)
+        if not tag:
+            self.error(404)
+        elif userid_does_follow(follower_id, tag=tag):
+            self.response.set_status(204)
+        else:
+            self.error(404)
+
+    @request_schema(None)
+    @requires_authentication(as_param='follower_id')
+    def put(self, tag, follower_id):
+        tag = self.db_session.query(Tag).get(tag)
+        if not tag:
+            self.error(404)
+        elif userid_does_follow(follower_id, tag=tag):
+            self.error(409)
+        else:
+            follower = self.db_session.query(User).get(follower_id)
+            follower.tags_followed.append(tag)
+            self.db_session.commit()
+            self.response.set_status(201)
+
+    @request_schema(None)
+    @requires_authentication(as_param='follower_id')
+    def delete(self, tag, follower_id):
+        tag = self.db_session.query(Tag).get(tag)
+        if not tag:
+            self.error(404)
+        elif userid_does_follow(follower_id, tag=tag):
+            follower = self.db_session.query(User).get(follower_id)
+            follower.tags_followed.remove(tag)
+            self.db_session.commit()
+            self.response.set_status(204)
+
+        else:
+            self.error(404)
 
 class UserFollowerInstance(Endpoint):
     """ /users/<followee>/followers/<follower> 

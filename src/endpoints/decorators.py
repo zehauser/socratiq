@@ -51,7 +51,7 @@ def assert_json_matches_schema(schema, obj):
                               expected=schema.__name__)
 
 
-def request_schema(required_body=None, optional_params=None):
+def request_schema(required_body=None, required_params=[], optional_params=[]):
     def request_schema_decorator_creator(handler_func):
         def request_schema_decorator(self, *args, **kwargs):
             try:
@@ -65,11 +65,15 @@ def request_schema(required_body=None, optional_params=None):
                 params = list(self.request.GET.items())
                 param_keys = [k for k,_ in params]
                 for k,v in params:
-                    if k not in optional_params:
+                    if k not in optional_params + required_params:
                         raise SchemaError('UNEXPECTED_QUERY_PARAM', received=k)
                     if param_keys.count(k) > 1:
                         raise SchemaError('DUPLICATE_QUERY_PARAM', received=k)
                     self.request_data[k] = v
+
+                for k in required_params:
+                    if k not in param_keys:
+                        raise SchemaError('MISSING QUERY PARAM', expected=k)
 
             except SchemaError, e:
                 self.error(400, json=e.message)

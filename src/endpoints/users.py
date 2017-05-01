@@ -4,6 +4,7 @@ from common import authentication
 from common.database import User, Institution, userid_does_follow
 from endpoint import Endpoint
 from endpoints.decorators import request_schema
+from endpoints.tags import tag_to_json
 
 
 def email_has_domain(email, domain):
@@ -23,15 +24,17 @@ class UserCollection(Endpoint):
         users = self.db_session.query(User.id).all()
         self.json_response({'user_count': len(users), 'users': users})
 
+
 def user_to_json(user, follower_id=None):
-    json = { 'userid': user.id, 'name': user.name,
-             'institution': user.institution }
+    json = {'userid': user.id, 'name': user.name,
+            'institution': user.institution}
     if follower_id and follower_id != user.id:
         if userid_does_follow(follower_id, user):
             json['followed'] = True
         else:
             json['followed'] = False
     return json
+
 
 class UserInstance(Endpoint):
     """ /users/<user>
@@ -45,20 +48,20 @@ class UserInstance(Endpoint):
     @request_schema(None)
     def get(self, userid):
         user = self.db_session.query(User).get(userid)
-        if user:
-            response = user_to_json(user, self.authenticated_user)
-
-            response['tagsFollowed'] = [t.name for t in user.tags_followed.all()]
-            response['usersFollowed'] = [user_to_json(u, self.authenticated_user)
-                                         for u in user.users_followed.all()]
-
-            self.json_response(response)
-        else:
+        if not user:
             self.error(404)
+
+        response = user_to_json(user, self.authenticated_user)
+
+        response['tagsFollowed'] = [tag_to_json(t, self.authenticated_user)
+                                    for t in user.tags_followed.all()]
+        response['usersFollowed'] = [user_to_json(u, self.authenticated_user)
+                                     for u in user.users_followed.all()]
+
+        self.json_response(response)
 
     @request_schema({'name': str, 'email': str, 'password': str,
                      'institution': str})
-
     def put(self, userid):
         if self.db_session.query(User).get(userid):
             self.error(409)

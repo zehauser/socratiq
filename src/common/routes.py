@@ -18,19 +18,16 @@ app = webapp2.WSGIApplication([
 
     webapp2.Route('/users', UserCollection),
     webapp2.Route('/users/<userid>', UserInstance),
-    webapp2.Route('/users/<userid>/articles', UserArticleCollection),
     webapp2.Route('/users/<followee_id>/followers', UserFollowerCollection),
     webapp2.Route('/users/<followee_id>/followers/<follower_id>',
                   UserFollowerInstance),
 
     webapp2.Route('/tags', TagCollection),
-    webapp2.Route('/tags/<tag>', TagInstance),
     webapp2.Route('/tags/<tag>/articles', TagArticleCollection),
-    webapp2.Route('/tags/<tag>/followers/', TagFollowerCollection),
     webapp2.Route('/tags/<tag>/followers/<follower_id>', TagFollowerInstance),
 
     webapp2.Route('/login', LoginServer),
-
+    webapp2.Route('/search', SearchServer),
     webapp2.Route('/test_error', TestErrorHandler),
 
     webapp2.Route('<:.*>', NotFoundHandler)
