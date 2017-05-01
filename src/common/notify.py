@@ -1,5 +1,6 @@
 from twilio.rest import Client
 import logging
+import os
 
 from common.database import Session, Secret
 
@@ -14,12 +15,15 @@ try:
 except StandardError, e:
     logging.error('Error setting up Twilio!', exc_info=e)
 
+
 def notify_administrator(url, exn):
     try:
         _client.messages.create(
             to=_ADMIN_PHONE,
             from_=_TWILIO_PHONE,
-            body='[{}] {}'.format(url, exn.__repr__())
+            body='[{}] [{}] {}'.format(
+                os.getenv('CURRENT_VERSION_ID').split('.')[0], url,
+                exn.__repr__())[:1599]
         )
     except StandardError, e:
         logging.error('Error sending Twilio message!', exc_info=e)

@@ -1,6 +1,5 @@
 import os
-
-from sys import argv
+import logging
 from sqlalchemy import Column, String, DateTime, LargeBinary, ForeignKey, Table, \
     Text
 from sqlalchemy.ext.declarative import declarative_base
@@ -9,15 +8,15 @@ from sqlalchemy.orm import sessionmaker, relationship
 
 from common import running_in_production
 
-_CONNECTION_STR = 'mysql+mysqldb://{}@/{}?unix_socket=/cloudsql/{}'.format(
+_CONNECTION_STR = 'mysql+mysqldb://{}@/{}?unix_socket=/cloudsql/{}&charset=utf8'.format(
     os.environ.get('CLOUDSQL_USER'), os.environ.get('CLOUDSQL_DB'),
     os.environ.get('CLOUDSQL_CONNECTION_NAME')
 )
 
 if not running_in_production():
-    _CONNECTION_STR = "mysql+mysqldb://root@127.0.0.1:9501/v3"
+    _CONNECTION_STR = "mysql+mysqldb://root@127.0.0.1:9501/v3?charset=utf8"
 
-_engine = create_engine(_CONNECTION_STR, echo='--echo' in argv)
+_engine = create_engine(_CONNECTION_STR)
 Session = sessionmaker(bind=_engine)
 _Base = declarative_base()
 _Base.metadata.bind = _engine
@@ -84,6 +83,8 @@ class Tag(_Base):
     __tablename__ = 'Tags'
     name = Column(String(100), primary_key=True)
 
+    followers = relationship('User', lazy='dynamic', secondary=_tag_follows)
+
 
 class Article(_Base):
     __tablename__ = 'Articles'
@@ -124,3 +125,12 @@ class Institution(_Base):
 
 
 _Base.metadata.create_all(_engine, checkfirst=True)
+
+
+def userid_does_follow(follower_id, tag=None, user=None):
+    # assert (tag and isinstance(tag, Tag)) or (user and isinstance(user, User))
+    assert isinstance(follower_id, basestring)
+    if user:
+        return user.followers.filter_by(id=follower_id).count() == 1
+    if tag:
+        return tag.followers.filter_by(id=follower_id).count() == 1

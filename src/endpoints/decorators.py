@@ -62,10 +62,12 @@ def request_schema(required_body=None, optional_params=None):
                     self.request_data = json.loads(self.request.body)
                     assert_json_matches_schema(required_body, self.request_data)
 
-                for k, v in self.request.GET.items():
+                params = list(self.request.GET.items())
+                param_keys = [k for k,_ in params]
+                for k,v in params:
                     if k not in optional_params:
                         raise SchemaError('UNEXPECTED_QUERY_PARAM', received=k)
-                    if k in self.request_data:
+                    if param_keys.count(k) > 1:
                         raise SchemaError('DUPLICATE_QUERY_PARAM', received=k)
                     self.request_data[k] = v
 

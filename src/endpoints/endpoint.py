@@ -38,16 +38,18 @@ DEFAULT_ERRORS = {
 
 
 class Endpoint(webapp2.RequestHandler):
-    authenticated_user = None
-    db_session = Session()
-    request_data = {}
-
     def dispatch(self):
         try:
+            logging.debug(self.request)
+            self.authenticated_user = None
+            self.db_session = Session()
+            self.request_data = {}
+
             self._process_auth_header()
             self._add_cors_headers()
             super(Endpoint, self).dispatch()
             self.db_session.close()
+
         except InvalidAuthenticationError:
             self.error(401)
 
@@ -102,7 +104,8 @@ class Endpoint(webapp2.RequestHandler):
             logging.exception(exn)
             self.error(500)
             if running_in_production():
-                notify_administrator(self.request.url, exn)
+                notify_administrator(
+                    self.request.method + ' ' + self.request.url, exn)
 
     def get(self, *args, **kwargs):
         self.error(405)
@@ -135,5 +138,3 @@ class Endpoint(webapp2.RequestHandler):
 class NotFoundHandler(Endpoint):
     def dispatch(self):
         self.error(404)
-
-

@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from common import authentication
-from common.database import User, Institution
+from common.database import User, Institution, userid_does_follow
 from endpoint import Endpoint
 from endpoints.decorators import request_schema
 
@@ -23,6 +23,14 @@ class UserCollection(Endpoint):
         users = self.db_session.query(User.id).all()
         self.json_response({'user_count': len(users), 'users': users})
 
+def user_to_json(user, follower_id=None):
+    json = { 'userid': user.id, 'name': user.name }
+    if follower_id and follower_id != user.id:
+        if userid_does_follow(follower_id, user):
+            json['followed'] = True
+        else:
+            json['followed'] = False
+    return json
 
 class UserInstance(Endpoint):
     """ /users/<user>
@@ -37,23 +45,20 @@ class UserInstance(Endpoint):
     def get(self, userid):
         user = self.db_session.query(User).get(userid)
         if user:
-            response = {
-                'userid': userid,
-                'name': user.name,
-                'institution': user.institution
-            }
-            if self.authenticated_user and self.authenticated_user != userid:
-                if (user.followers.filter_by(
-                        id=self.authenticated_user).count() == 1):
-                    response['followed'] = True
-                else:
-                    response['followed'] = False
+            response = user_to_json(user, self.authenticated_user)
+
+            response['institution'] = user.institution
+            response['tagsFollowed'] = [t.name for t in user.tags_followed.all()]
+            response['usersFollowed'] = [user_to_json(u, self.authenticated_user)
+                                         for u in user.users_followed.all()]
+
             self.json_response(response)
         else:
             self.error(404)
 
     @request_schema({'name': str, 'email': str, 'password': str,
                      'institution': str})
+
     def put(self, userid):
         if self.db_session.query(User).get(userid):
             self.error(409)

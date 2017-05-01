@@ -1,8 +1,9 @@
 import uuid
 from datetime import datetime
 
+from sqlalchemy import or_
 from sqlalchemy.sql import func
-from common.database import Article, User, Tag
+from common.database import Article, User, Tag, userid_does_follow
 from endpoint import Endpoint
 from endpoints.decorators import requires_authentication, request_schema
 
@@ -20,11 +21,14 @@ def article_to_json(article, snippet=False, follower=None):
         'tags': [tag.name for tag in article.tags if tag.name != 'NYT_scraped']
     }
     if snippet:
-        json['snippet'] = article.content[:247] + '...'
+        if len(article.content) < 250:
+            json['snippet'] = article.content
+        else:
+            json['snippet'] = article.content[:247].rstrip('.,!?; \n') + '...'
     else:
         json['content'] = article.content
     if follower and follower != article.author.id:
-        if article.author.followers.filter_by(id=follower).count() == 1:
+        if userid_does_follow(follower_id=follower, user=article.author):
             json['author']['followed'] = True
         else:
             json['author']['followed'] = False
@@ -41,19 +45,35 @@ class ArticleCollection(Endpoint):
     """
 
     @request_schema(optional_params=['tag', 'author', 'author_institution',
-                                     'month', 'year'])
+                                     'month', 'year', 'infinite', 'personalized'])
     def get(self):
-        if 'tag' in self.request_data:
-            tag = self.db_session.query(Tag).get(self.request_data['tag'])
-            if not tag:
-                self.json_response([])
-                return
-            articles = tag.articles
-        else:
-            articles = self.db_session.query(Article)
+        infinite = ('infinite' in self.request_data and
+                    self.request_data['infinite'] == 'true')
+        personalized = ('personalized' in self.request_data and
+                        self.request_data['personalized'] == 'true')
+        if personalized and (not self.authenticated_user):
+            self.error(401)
+            return
 
+        articles = self.db_session.query(Article)
+        if 'tag' in self.request_data or personalized:
+            articles = articles.join(Article.tags)
+
+        if personalized:
+            user = self.db_session.query(User).get(self.authenticated_user)
+            users_followed = [u.id for u in user.users_followed.all()]
+            tags_followed = [t.name for t in user.tags_followed.all()]
+            articles = articles.filter(
+                or_(
+                    Article.author_id.in_(users_followed),
+                    Tag.name.in_(tags_followed)
+                )
+            )
+
+        if 'tag' in self.request_data:
+            articles = articles.filter_by(name=self.request_data['tag'])
         if 'author' in self.request_data:
-            articles = articles.filter_by(author_id=self.request_data['author'])
+            articles = articles.filter(Article.author_id == self.request_data['author'])
         if 'author_institution' in self.request_data:
             articles = articles.filter(
                 Article.author.has(institution=self.request_data[
@@ -67,8 +87,9 @@ class ArticleCollection(Endpoint):
                 func.MONTH(Article.time_published) ==
                 self.request_data['month'])
 
+        limit = 500 if infinite else 10
         articles = articles.order_by(
-            Article.time_published.desc()).limit(10).all()
+            Article.time_published.desc()).limit(limit).all()
         articles = [
             article_to_json(a, snippet=True, follower=self.authenticated_user)
             for a in articles
@@ -78,14 +99,14 @@ class ArticleCollection(Endpoint):
     def get_or_create_tag(self, tag_name):
         tag = self.db_session.query(Tag).get(tag_name)
         if not tag:
-            self.db_session.add(Tag(name=tag_name))
-            self.db_session.query(Tag).get(tag_name)
+            tag = Tag(name=tag_name)
+            self.db_session.add(tag)
         return tag
 
     @request_schema({'title': str, 'content': str, 'tags': [str]})
     @requires_authentication()
     def post(self):
-        tags = [self.get_or_create_tag(tag) for tag in tagss]
+        tags = [self.get_or_create_tag(t) for t in self.request_data['tags']]
 
         author = self.db_session.query(User).get(self.authenticated_user)
 

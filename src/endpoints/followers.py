@@ -1,4 +1,4 @@
-from common.database import User
+from common.database import User, userid_does_follow
 from endpoint import Endpoint
 from endpoints.decorators import requires_authentication, request_schema
 
@@ -38,24 +38,23 @@ class UserFollowerInstance(Endpoint):
     @requires_authentication(as_param='follower_id')
     def get(self, followee_id, follower_id):
         followee = self.db_session.query(User).get(followee_id)
-        follower = self.db_session.query(User).get(follower_id)
-        if not (followee and follower):
+        if not followee:
             self.error(404)
-        elif follower.users_followed.filter(User.id == followee.id).count() != 1:
-            self.error(404)
-        else:
+        elif userid_does_follow(follower_id, user=followee):
             self.response.set_status(204)
+        else:
+            self.error(404)
 
     @request_schema(None)
     @requires_authentication(as_param='follower_id')
     def put(self, followee_id, follower_id):
         followee = self.db_session.query(User).get(followee_id)
-        follower = self.db_session.query(User).get(follower_id)
-        if not follower or not followee:
+        if not followee:
             self.error(404)
-        elif follower.users_followed.filter(User.id == followee_id).count() > 0:
+        elif userid_does_follow(follower_id, user=followee):
             self.error(409)
         else:
+            follower = self.db_session.query(User).get(follower_id)
             follower.users_followed.append(followee)
             self.db_session.commit()
             self.response.set_status(201)
@@ -64,12 +63,13 @@ class UserFollowerInstance(Endpoint):
     @requires_authentication(as_param='follower_id')
     def delete(self, followee_id, follower_id):
         followee = self.db_session.query(User).get(followee_id)
-        follower = self.db_session.query(User).get(follower_id)
-        if not followee or not follower:
+        if not followee:
             self.error(404)
-        elif follower.users_followed.filter(User.id == followee.id).count() != 1:
-            self.error(404)
-        else:
+        elif userid_does_follow(follower_id, user=followee):
+            follower = self.db_session.query(User).get(follower_id)
             follower.users_followed.remove(followee)
             self.db_session.commit()
             self.response.set_status(204)
+
+        else:
+            self.error(404)

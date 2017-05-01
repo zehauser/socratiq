@@ -4,14 +4,15 @@
 
 ### GET /articles
 
-Get a feed of 10 random articles (with metadata, but only partial body content).
+Get a feed of the most recent articles, limited by a set of (optional) filters
+passed in the query parameters.
 
-Request:
+Example request:
 ```
-GET /articles
+GET /articles?tag=foo&year=1970
 ```
 
-Response:
+Example response:
 ```
 200 OK
 
@@ -32,7 +33,9 @@ Response:
 ]
 ```
 
-Note that the `"followed"` flag (indicating whether the authenticated user 
+Note that the query parameters are all !!!!!.
+
+Note also that the `"followed"` flag (indicating whether the authenticated user 
 follows `author`) will not appear if the request is unauthenticated, or if 
 the authenticated user is `author`.
 
@@ -41,7 +44,7 @@ the authenticated user is `author`.
 Publish a new article, authored by the authenticated user 
 (requires authentication).
 
-Request:
+Example request:
 ```
 POST /articles
 Authorization: Bearer eyJ0eXAiOiJKV1Q.eyJleGFtcGQ5M.PRyeTAp
@@ -55,7 +58,7 @@ Authorization: Bearer eyJ0eXAiOiJKV1Q.eyJleGFtcGQ5M.PRyeTAp
 }
 ```
 
-Response:
+Example response:
 ```
 201 Created
 Location: https://socratiq-api.domain/articles/bdc4d94969c945bf9a394667a1543344
@@ -87,12 +90,12 @@ the authenticated user is `author`.
 
 Get the full content of the specified article.
 
-Request:
+Example request:
 ```
 GET /article/bdc4d94969c945bf9a394667a1543344
 ```
 
-Response:
+Example response:
 ```
 200 OK
 
