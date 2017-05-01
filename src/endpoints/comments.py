@@ -5,7 +5,7 @@ import datetime
 from common.database import Article, Comment, User
 from endpoints.decorators import request_schema, requires_authentication
 from endpoints.endpoint import Endpoint
-from endpoints.users import user_to_json
+from common.representations import user_to_json
 
 
 def comment_to_json(comment, follower_id=None, snippet=False):

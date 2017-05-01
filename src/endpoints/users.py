@@ -1,10 +1,10 @@
 from datetime import datetime
 
 from common import authentication
-from common.database import User, Institution, userid_does_follow
+from common.database import User, Institution
+from common.representations import user_to_json, tag_to_json
 from endpoint import Endpoint
 from endpoints.decorators import request_schema
-from endpoints.tags import tag_to_json
 
 
 def email_has_domain(email, domain):
@@ -23,17 +23,6 @@ class UserCollection(Endpoint):
     def get(self):
         users = self.db_session.query(User.id).all()
         self.json_response({'user_count': len(users), 'users': users})
-
-
-def user_to_json(user, follower_id=None):
-    json = {'userid': user.id, 'name': user.name,
-            'institution': user.institution}
-    if follower_id and follower_id != user.id:
-        if userid_does_follow(follower_id, user):
-            json['followed'] = True
-        else:
-            json['followed'] = False
-    return json
 
 
 class UserInstance(Endpoint):
@@ -66,6 +55,7 @@ class UserInstance(Endpoint):
         if self.db_session.query(User).get(userid):
             self.error(409)
             return
+
         email = self.request_data['email']
         institution_name = self.request_data['institution']
         institution = self.db_session.query(Institution).get(institution_name)

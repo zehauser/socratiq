@@ -1,13 +1,30 @@
 from sqlalchemy import or_
 
 from common.database import Article, User, Tag
-from endpoints.articles import article_to_json
+from common.representations import article_to_json, user_to_json, tag_to_json
 from endpoints.decorators import request_schema
 from endpoints.endpoint import Endpoint
-from endpoints.tags import tag_to_json
-from endpoints.users import user_to_json
 
 MAX_RESULTS = 30
+
+def search_articles(db_session, query, follower):
+    exact_matches = db_session.query(Article).filter(
+        Article.title == query
+    ).limit(MAX_RESULTS).all()
+    close_matches = db_session.query(Article).filter(
+        Article.title.like('% ' + query + ' %')
+    ).limit(MAX_RESULTS).all()
+    matches = db_session.query(Article).filter(
+        Article.title.like('%' + query + '%')
+    ).limit(MAX_RESULTS).all()
+
+    close_matches = exact_matches + [a for a in close_matches if
+                                     a not in exact_matches]
+    matches = close_matches + [a for a in matches if
+                               a not in close_matches]
+
+    return [article_to_json(a, follower) for a in
+            matches[:MAX_RESULTS]]
 
 class SearchServer(Endpoint):
 

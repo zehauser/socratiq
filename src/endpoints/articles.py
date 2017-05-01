@@ -1,33 +1,14 @@
 import uuid
 from datetime import datetime
-
 from sqlalchemy import or_
+
 from sqlalchemy.sql import func
-from common.database import Article, User, Tag, userid_does_follow
+
+from common.database import Article, User, Tag
+from common.representations import article_to_json
 from endpoint import Endpoint
 from endpoints.decorators import requires_authentication, request_schema
-from endpoints.tags import tag_to_json
-from endpoints.users import user_to_json
-
-
-def article_to_json(article, snippet=False, follower=None):
-    json = {
-        'id': article.uuid,
-        'title': article.title,
-        'author': user_to_json(article.author, follower),
-        'date': article.time_published.strftime('%B %d, %Y'),
-        'tags': [t.name for t in article.tags.all()]
-    }
-
-    if snippet:
-        if len(article.content) < 250:
-            json['snippet'] = article.content
-        else:
-            json['snippet'] = article.content[:247].rstrip('.,!?; \n') + '...'
-    else:
-        json['content'] = article.content
-
-    return json
+from search import search_articles
 
 
 class ArticleCollection(Endpoint):
@@ -40,8 +21,18 @@ class ArticleCollection(Endpoint):
     """
 
     @request_schema(optional_params=['tag', 'author', 'author_institution',
-                                     'month', 'year', 'infinite', 'personalized'])
+                                     'month', 'year', 'infinite', 'personalized',
+                                     'search_query'])
     def get(self):
+
+        if self.request_data['search_query']:
+            self.json_response(
+                search_articles(self.db_session,
+                                self.request_data['search_query'],
+                                self.authenticated_user)
+            )
+            return
+
         infinite = ('infinite' in self.request_data and
                     self.request_data['infinite'] == 'true')
         personalized = ('personalized' in self.request_data and

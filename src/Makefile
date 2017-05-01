@@ -7,6 +7,6 @@ dependencies: clean
 
 clean:
 	rm -rf venv
-	rm -f gaelib
+	rm -f gae-lib
 	rm -f *.pyc
 	rm -f */*.pyc
