@@ -24,7 +24,8 @@ class UserCollection(Endpoint):
         self.json_response({'user_count': len(users), 'users': users})
 
 def user_to_json(user, follower_id=None):
-    json = { 'userid': user.id, 'name': user.name }
+    json = { 'userid': user.id, 'name': user.name,
+             'institution': user.institution }
     if follower_id and follower_id != user.id:
         if userid_does_follow(follower_id, user):
             json['followed'] = True
@@ -47,7 +48,6 @@ class UserInstance(Endpoint):
         if user:
             response = user_to_json(user, self.authenticated_user)
 
-            response['institution'] = user.institution
             response['tagsFollowed'] = [t.name for t in user.tags_followed.all()]
             response['usersFollowed'] = [user_to_json(u, self.authenticated_user)
                                          for u in user.users_followed.all()]
